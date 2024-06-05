@@ -28,16 +28,23 @@
               sudo apt-get install trivy -y
               #command to scan files
               trivy fs .
-          - name: Set up Docker Buildx
-            uses: docker/setup-buildx-action@v2
-
-          - name: Log in to Docker Hub
-            run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
           - name: Docker build and push
             run: |
-                 docker build --build-arg TMDB_v3_API_kEY=f3f12aa50fb34b38ac959f6b301ff68f -t netflix .
-                 docker tag netflix joe25bachou/netflix:latest
-                 docker push joe25bachou/netflix:latest
+                  #run commands to build and push docker images
+                  docker build --build-arg TMDB_V3_API_KEY=e488ef946523a124190a363c8f008cdd -t netflix .
+                  docker tag netflix sushantkapare1717/netflix:latest
+                  docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+                  docker push sushantkapare1717/netflix:latest  
             env: 
                 DOCKER_CLI_ACI: 1
+
+      deploy:    
+        needs: build  
+        runs-on: [aws-netflix]  
+        steps:
+          - name: Pull the docker image
+            run: docker pull sushantkapare1717/netflix:latest
+          - name: Trivy image scan
+            run: trivy image sushantkapare1717/netflix:latest
+          - name: Run the container netflix
+            run: docker run -d --name netflix -p 8081:80 sushantkapare1717/netflix:latest
